@@ -1,0 +1,82 @@
+/**:
+  ros__parameters:
+    recv_topic: "/vision_recv_data"
+    back_target: "/back_target"
+    send_topic: "/vision_send_data"
+    target_topic: "/target"
+    global_position_: "/global_costmap/published_footprint"
+    decision_send_topic: "/decision/vision_send_data"
+    pursuit_armor_id: "all"
+    odom_topic: "/Odometry_transformed"
+    hp_threshold: 150.0
+    goal_pose_override: "/goal_pose_override"
+    area_pub_topic: "/special_areas"
+    cmd_vel_remap_topic: "/cmd_vel_remap"
+    plan_path_topic: "/Path"
+    PID_follower:
+      KP: 0.3
+      KI: 0.0
+      KD: 0.0
+      integral: 0.0
+
+    decision_selector: 1
+
+    #设置巡航点
+    attack_outpost: false
+    self_blue:
+      goal_points: ["11.91,-4.97","8.76,-3.12","8.78,1.19","12.75,2.38","11.91,-4.97",]
+      supply: ["22.18,2.73"]
+      buff_points: ["12.76,2.32","11.61,-5.56",]
+      enermy_outpost: ["7.03,-5.02"]
+      attack_outpost_point: ["11.45,-5.39"]
+      
+    self_red:
+      goal_points: ["16.97,-8.09","15.08,-3.94","16.23,0.87",]
+      supply: ["-1.72,-5.62"] 
+      buff_points: ["8.69,2.72","7.73,-5.21",]
+      enermy_outpost: ["13.65,2.31"]
+      attack_outpost_point: ["9.51,1.555"]
+
+    #多边形区域选取为正常的非凸多边形
+    special_areas_names: ["R1","B2","R2","B1","R3","B3"]  
+    # special_areas_names: ["R1","B2","R2","B1"]  
+    R1:
+      type: "both"
+      area: "across"
+      path_ends: ["9.04,4.61","11.03,4.55",] #如果区域类型为single的时候，第一个为起点
+      polygon_ends: 
+            ["7.97,4.16","8.61,3.50","9.30,4.21","11.29,4.19","11.32,4.98","8.68,5.10","7.97,4.16",]
+    R2:
+      type: "both"
+      area: "across"
+      path_ends: ["6.23,-4.11","7.65,-3.59",] 
+      polygon_ends: 
+            ["6.09,-3.76","7.41,-3.23","7.23,-2.81","7.95,-2.69","8.43,-4.14","7.82,-4.30","7.64,-3.93","6.35,-4.44","6.40,-4.86","5.96,-4.94","5.40,-3.61","6.06,-3.35","6.09,-3.76",]
+    R3:
+      type: "both"
+      area: "across"
+      path_ends: ["6.40,4.43","7.35,3.65",]
+      polygon_ends: 
+            ["5.44,4.00","6.28,3.91","6.95,3.04","7.93,4.13","7.56,5.00","6.03,5.07","5.44,4.00",]
+    B1:
+      type: "both"
+      area: "across"
+      path_ends: ["12.97,0.88","14.24,1.30",]
+      polygon_ends: 
+            ["12.17,1.52","12.70,1.69","12.88,1.24","14.18,1.64","14.07,2.01","14.59,2.11","15.15,0.75","14.52,0.48","14.31,0.92","13.24,0.50","13.47,0.03","12.90,-0.09","12.17,1.52",]
+    B2:
+      type: "both"
+      area: "across"
+      path_ends: ["9.61,-7.27","11.65,-7.25",]
+      polygon_ends: 
+            ["9.31,-6.90","11.17,-6.87","11.84,-6.00","12.74,-6.65","11.95,-7.66","9.22,-7.70","9.31,-6.90",]
+    B3:
+      type: "both"
+      area: "across"
+      path_ends: ["13.17,-6.51","13.94,-7.03",]
+      polygon_ends: 
+            ["12.56,-6.87","13.42,-5.82","14.26,-6.64","15.11,-6.71","15.02,-7.55","13.53,-7.50","12.56,-6.87",]
+
+
+
+
