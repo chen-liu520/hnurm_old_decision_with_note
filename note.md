@@ -394,30 +394,21 @@ class GameStart : public BT::ConditionNode {
     - tf_listener_timer_: 1000ms定时器 (tf_listener_callback)  
     - timer_callback:10ms,**==但是在tick回调组里运行，因此一次tick会有跑两次定时器回调，更新周期还是tick的20ms==**
 - **两个回调组**：
-    - 设计目的应该是两个回调组并行执行，回调组内部串行执行，这样可以保证一些实时性高的可以不被阻塞
+    - 设计目的应该是两个回调组并行执行，回调组内部串行执行，这样**可以保证一些实时性高的可以不被阻塞**
     - 视觉相关回调（如速度重映射）通常实时性要求更高
         - 比如速度重映射 
     - 分离回调组可以避免非关键回调阻塞关键回调的执行
         - 实现资源隔离：避免一个功能域的回调异常影响另一个功能域
-        - 逻辑分离：将视觉控制和导航决策的回调分开，便于维护和调试
-
-.hpp
-```cpp
-// 把单线程执行器换成多线程 rclcpp::executors::SingleThreadedExecutor -> rclcpp::executors::MultiThreadedExecutor
-rclcpp::executors::MultiThreadedExecutor Multi_callback_executor_;
-```
-.cpp
-```cpp
-// 添加两个回调组
-executor_->add_callback_group(callback_group_, node_->get_node_base_interface());
-executor_->add_callback_group(callback_group_for_vision_data, node_->get_node_base_interface());
-
- // 启动执行器线程
-    executor_thread_ = std::thread([this]() {
-        executor_->spin();
+        - 逻辑分离：将视觉控制和导航决策的回调分开，便于维护和调试 
+    - **==！！！回调组如果是单线程执行，那么不能放在tick()函数里，因为每次执行 BT 节点都会创建新线程，会导致资源泄漏和程序崩溃！==**
+    - **==如果想要单线程执行，那么最好放在构造函数里，同时注意线程安全==**
+    - **==比如两个回调组，高实时性要求的就单线程执行，低实时性要求的放在tick()里直接`callback_group_executor_.spin_some();`==**
+    - 构造函数：**==线程在后台一直运行，回调实时更新==**
+    ```cpp
+    executor_thread_ = std::thread([this](){ 
+        callback_group_executor_.spin(); 
     });
-```
-
+    ``` 
 - 风险：
     - 共享资源访问：对共享变量（如current_pose_、is_in_special_area等）的访问需要加锁
     - 回调顺序：并行执行可能改变回调的执行顺序，需要确保逻辑正确性
@@ -665,3 +656,20 @@ void pubRobotStatus::goal_pose_callback(const geometry_msgs::msg::PoseStamped::S
         - 单点可以是堡垒、敌方前哨偏左的位置
         - 路线可以是高地增益点区域、高地巡逻（环线）、己方半场巡逻（环线）、导航至堡垒区域（重规划上堡垒）
 - 但是项目里所有导航点（追击，加血，巡航）都用的这个队列
+- 追击要分为靠近和远离
+    - 实现？
+        - 雷达与机器人通信
+        - 连续计算1s内距离值写入数组然后计算递增还是递减趋势
+    - 远离
+        - 标记敌人坐标，连续发敌人坐标点导航
+    - 靠近
+        - 卡尔曼滤波预测位置或者简单计算方向向量
+        - 血量低，向远离敌方的方向移动
+        - 血量高，迎着上去
+- 旧决策里没有做敌人靠近后的处理，只是用距离判断
+    - 距离近就是stay，远离方法被注释
+    - 前哨stay
+    - 远的就追
+- 决策：
+    - 单按照血量决定在高地还是己方半场有点不太合理
+    - 加一个在各自的区域里如果长时间没有detect到敌人，就切换区域

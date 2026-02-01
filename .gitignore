@@ -1,0 +1,11 @@
+# IDE配置文件
+.vscode/
+.marscode/
+
+# 构建目录
+build/
+
+# 其他临时文件
+*.swp
+*.swo
+*~
