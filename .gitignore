@@ -1,0 +1,11 @@
+# VS Code 配置
+.vscode/
+
+# MarsCode 配置
+.marscode/
+
+# 其他常见需要忽略的
+*.db
+*.log
+build/
+tmp/
