@@ -124,7 +124,7 @@
 
 ## 七、GameStart代码详细理解
 1. callback_group:互斥回调组
-    - 核心设计目的是**保证回调组内的所有回调函数不会同时执行，从而避免线程安全问题。**
+    - 核心设计目的是**保证回调组内的所有回调函数不会同时执行，从而避免线程安全问题。同时避免回调阻塞，确保tick按照频率执行，保证实时性**
     - GameStart类：
         - 类中有共享变量is_game_start，在is_game_start_callback中会被修改
         - 如果没有互斥机制，当多个回调同时执行时，可能导致is_game_start的状态不一致（竞态条件）
@@ -139,6 +139,7 @@
         - 这个参数名为automatically_add_to_executor_with_node，表示：
             - true（默认）：自动将此回调组添加到与节点关联的默认执行器中
             - false：不自动添加，需要开发者手动将其添加到指定执行器中
+    - 当然还有Reentrant型，在县城池中，他的意思是同一个回调组的可以在县城池多个线程并行执行，这样必须满足不会发生竞态条件
 2. 单线程执行器（SingleThreadedExecutor）
     - **在一个独立线程中执行所有回调函数的执行器。设计它的主要原因是：**
         - 确保回调函数按顺序执行，避免并发执行导致的线程安全问题
@@ -159,6 +160,26 @@
 4. **==设计理念==**
     - 原先如果这些订阅者订阅的话题出现了新的消息，回调函数原本是会立即执行去更新状态的，现在是需要等到行为树tick到的时候一起执行
     - 每次tick的时候，先把该执行的回调先执行，去更新状态再判断是不是游戏开始
+5. **==回调组和不使用回调组==**
+    - **用了回调组必须要spin_some()，否则回调函数不会被执行**
+    - ==那么你可能会遇到：为什么我设置了回调组，没有spin_some(),回调组里的函数还是会被执行呢？==
+        - 如果没有spin，又恰好构造的时候回调函数配置（比如create_subscreabtion）比回调组更早，那么会在使用的黑板的ros2的node节点里统一处理回调
+    - ==如果不使用专属回调组，那么自定义节点的回调会挂载到decision.cpp里的node节点处理回调函数==
+    - ==**所以想要使用专属回调组，必须先配置回调组，再创建订阅者挂载sub_option**==
+6. decision.cpp解释
+    - 这个`auto node = rclcpp::Node::make_shared("decision_node");`是ros2的通用节点，后续被写入BT树的黑板，被其他自定义节点使用
+        - 比如GameStart节点：`node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");`
+        - 比如PubRobotStatus节点：`node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");`
+    - 这里是一个线程，先批量处理node的回调函数，在执行tick_root跑一次决策树的tick()
+```cpp
+while (rclcpp::ok())
+    {
+        // rclcpp::spin_some(node);
+        executor.spin_some(); // 处理所有待处理的ROS回调
+        tree.tickRoot();      // tick 开始
+        loop_rate.sleep();    // 本次tick周期结束，休眠以维持循环频率
+    }
+```
 > 如果有多个订阅者，都用互斥回调组，那么代码应该是
 - GameStart.cpp
 ```cpp
